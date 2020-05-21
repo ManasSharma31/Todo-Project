@@ -3,6 +3,7 @@ const bodyParser=require("body-parser")
 const date=require(__dirname+"/date.js")
 const ejs= require('ejs')
 const mongoose=require("mongoose")
+const _=require('lodash')
 mongoose.connect("mongodb://localhost:27017/TodoDb",{useUnifiedTopology:true,useNewUrlParser:true})
 
 const itemSchema = mongoose.Schema({
@@ -80,7 +81,7 @@ app.get('/', (req, res) => {
 });
 
 app.get("/:listName",function (req,res) {
-  const ln=req.params.listName;
+  const ln=_.capitalize(req.params.listName);
   List.findOne({name:ln},function (err,result) {
     if(!err)
     {
@@ -88,7 +89,7 @@ app.get("/:listName",function (req,res) {
       {
         const list=new List({
           name:ln,
-          listitem:defaultitems
+          listitem:[]
         });
         list.save();
         res.redirect("/"+ ln);
@@ -134,6 +135,9 @@ app.post('/',function (req,res) {
 
 app.post("/delete",function (req,res) {
   const deleteId=req.body.checkbox;
+  const listname=req.body.whichList;
+  if(listname===today)
+  {
   Item.deleteOne({_id:deleteId},function (err) {
     if(err)
     console.log(err);
@@ -142,15 +146,20 @@ app.post("/delete",function (req,res) {
     }
 
   });
-
-})
-
-app.get('/work',function (res,res) {
-
-
-  res.render("list",{listtitle:"Work List",items:works});
-
+}
+else {
+  List.findOneAndUpdate({name:listname},{$pull:{listitem : {_id : deleteId }}},function (err,result) {
+    if(!err)
+    {
+    res.redirect("/"+listname);
+     }
+     else {
+       console.log(err);
+     }
+   });
+}
 });
+
 
 
 app.listen(3000,function () {
